@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="dist/lib/commons-compress-1.15.jar"/>
+	<classpathentry kind="lib" path="dist/lib/commons-io-2.6.jar"/>
+	<classpathentry kind="lib" path="dist/lib/jtar-1.1.jar"/>
+	<classpathentry kind="lib" path="dist/lib/LGoodDatePicker-10.4.1.jar"/>
+	<classpathentry kind="lib" path="dist/lib/lucene-analyzers-common-6.4.2.jar"/>
+	<classpathentry kind="lib" path="dist/lib/lucene-core-6.4.2.jar"/>
+	<classpathentry kind="lib" path="dist/lib/lucene-queryparser-6.4.2.jar"/>
+	<classpathentry kind="lib" path="dist/lib/xz-1.6.jar"/>
+	<classpathentry kind="lib" path="dist/Slicer.jar"/>
+	<classpathentry kind="lib" path="lib/commons-compress-1.15.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.6.jar"/>
+	<classpathentry kind="lib" path="lib/CopyLibs/org-netbeans-modules-java-j2seproject-copylibstask.jar"/>
+	<classpathentry kind="lib" path="lib/jtar-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/LGoodDatePicker-10.4.1.jar"/>
+	<classpathentry kind="lib" path="lib/lucene-analyzers-common-6.4.2.jar"/>
+	<classpathentry kind="lib" path="lib/lucene-core-6.4.2.jar"/>
+	<classpathentry kind="lib" path="lib/lucene-queryparser-6.4.2.jar"/>
+	<classpathentry kind="lib" path="lib/xz-1.6.jar"/>
+	<classpathentry kind="output" path="build/classes"/>
+</classpath>

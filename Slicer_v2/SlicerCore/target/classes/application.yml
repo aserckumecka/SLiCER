@@ -1,0 +1,35 @@
+slicer:
+  api:
+    port: 7000
+  ingest:
+    tcpPort: 8888
+    spoolDir: "storage/spool"
+  
+  # --- NOVO BLOCO DE STORAGE E RETENÇÃO ---
+  storage:
+    # 1. Cache de Ingestão (Logs novos gerados pelo SLiCER localmente)
+    ingestCacheDir: "storage/cache/ingest"
+    maxIngestCacheMb: 5000  # Limite de 5GB. Se passar, apaga os mais velhos já enviados pra nuvem
+    
+    # 2. Cache de Pesquisa (Logs velhos trazidos de volta para investigação)
+    queryCacheDir: "storage/cache/query"
+    maxQueryCacheMb: 10000  # Limite de 10GB. Funciona como LRU (apaga as pesquisas mais antigas)
+    
+    # Frequência (em segundos) que o Worker procura novos blocos para despachar
+    syncIntervalSeconds: 60 
+    
+    # 3. Integração Charon / File-Sync (Deixe vazio "" para desativar)
+    cloudDropDir: "tmp/charon_sync_folder" 
+
+  # --- CONFIGURAÇÕES DA NUVEM DIRETA ---
+  aws:
+    bucketName: "bucket-slicer"
+  block:
+    maxSizeMb: 5
+    maxIntervalMinutes: 10
+    bufferLimit: 300
+    defaultFieldsToIndex: ["all"]
+    deviceFields: {} 
+    
+  search:
+    max-hits-per-block: 50000

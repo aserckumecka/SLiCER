@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLiCER - Threat Hunting Dashboard</title>
+    <style>
+        :root { --bg-color: #0f172a; --panel-bg: #1e293b; --text-main: #f8fafc; --accent: #3b82f6; --border: #334155; --row-hover: #334155; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; }
+        
+        .sticky-top { position: sticky; top: 0; z-index: 1000; background-color: var(--bg-color); padding: 20px 20px 10px 20px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .header { display: flex; align-items: center; margin-bottom: 15px; }
+        .header h1 { margin: 0; font-size: 24px; color: var(--accent); }
+        .search-panel { background-color: var(--panel-bg); padding: 15px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 15px; border: 1px solid var(--border); align-items: flex-end; }
+        .input-group { display: flex; flex-direction: column; min-width: 150px; flex: 1; position: relative;}
+        .input-group.small { min-width: 110px; flex: 0.5; }
+        .input-group.large { flex: 2; min-width: 300px; }
+        label { margin-bottom: 5px; font-size: 12px; font-weight: bold; text-transform: uppercase; color: #94a3b8; }
+        input, select, textarea { padding: 8px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--bg-color); color: white; font-size: 14px; box-sizing: border-box; width: 100%; }
+        
+        .selectBox { position: relative; cursor: pointer; }
+        .selectBox select { pointer-events: none; }
+        .overSelect { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+        #checkboxes { display: none; position: absolute; top: 60px; left: 0; right: 0; background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; z-index: 100; max-height: 200px; overflow-y: auto; box-shadow: 0px 8px 16px rgba(0,0,0,0.5); }
+        #checkboxes label { display: block; padding: 8px 10px; margin: 0; cursor: pointer; color: white; font-size: 14px; text-transform: none; font-weight: normal; }
+        #checkboxes label:hover { background-color: var(--row-hover); }
+        #checkboxes input { margin-right: 8px; width: auto; }
+
+        button { background-color: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background-color 0.2s; height: 38px; min-width: 150px; }
+        button:hover { background-color: #2563eb; }
+        .btn-small { padding: 4px 10px; font-size: 11px; height: auto; min-width: auto; background-color: #475569; }
+        .btn-small:hover { background-color: #10b981; }
+
+        .results-wrapper { padding: 0 20px 20px 20px; margin-top: 20px;}
+        .status-bar { padding: 10px 20px; background-color: #0f172a; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;}
+        .cost-badge { background-color: #064e3b; color: #34d399; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-family: monospace; }
+        .loader { display: none; color: #fbbf24; font-weight: bold; margin-right: 15px;}
+        mark { background-color: #854d0e; color: #fde047; padding: 0 2px; border-radius: 2px; }
+        
+        /* Sistema de Abas (Tabs) */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+        .tab-btn { background: none; border: none; padding: 10px 20px; color: #94a3b8; cursor: pointer; font-weight: bold; font-size: 14px; border-bottom: 3px solid transparent; }
+        .tab-btn:hover { color: white; }
+        .tab-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); }
+        .tab-content { display: none; background-color: var(--panel-bg); padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid var(--border); border-top: none; }
+        .tab-content.active { display: block; }
+        
+        /* Tree View (Details/Summary) */
+        details { background-color: #0f172a; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+        summary { padding: 12px; font-weight: bold; cursor: pointer; background-color: #1e293b; color: #e2e8f0; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        summary:hover { background-color: #334155; }
+        .block-title { display: flex; align-items: center; gap: 10px; }
+        .event-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; background-color: #0f172a;}
+        .event-list li { padding: 8px 15px; border-bottom: 1px solid var(--border); font-family: 'Consolas', monospace; font-size: 13px; color: #cbd5e1; word-wrap: break-word; }
+        .event-list li:last-child { border-bottom: none; }
+        .event-list li:hover { background-color: #1e293b; }
+        .event-count-badge { background-color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+
+    </style>
+</head>
+<body>
+    <div class="sticky-top">
+        <div class="header">
+            <h1>🗡️ SLiCER Edge Dashboard</h1>
+        </div>
+        <div class="search-panel">
+            <div class="input-group">
+                <label>Devices Origem</label>
+                <div class="multiselect">
+                    <div class="selectBox" onclick="toggleCheckboxes()">
+                        <select><option id="multiSelectText">3 Selecionados</option></select>
+                        <div class="overSelect"></div>
+                    </div>
+                    <div id="checkboxes">
+                        <label for="all_dev"><input type="checkbox" id="all_dev" onchange="toggleAllDevices(this)" checked/> [Todos]</label>
+                        <label for="fw"><input type="checkbox" class="dev-cb" value="Firewall-Edge" onchange="updateMultiSelectText()" checked/> Firewall-Edge</label>
+                        <label for="rt"><input type="checkbox" class="dev-cb" value="Router-Core" onchange="updateMultiSelectText()" checked/> Router-Core</label>
+                        <label for="ad"><input type="checkbox" class="dev-cb" value="Windows-AD" onchange="updateMultiSelectText()" checked/> Windows-AD</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group large" style="flex: 3;">
+                <label style="display: flex; justify-content: space-between;">
+                    <span>Query Builder</span>
+                    <span id="toggleModeBtn" style="color: var(--accent); cursor: pointer;" onclick="toggleAdvancedMode()">[ Alternar para Modo Avançado ]</span>
+                </label>
+                <input type="text" id="termInput" value="dst=10.0.0.177, act=drop" placeholder="Ex livre: TCP | Ex avançado: dst=10.0.0.1, act=drop">
+                <textarea id="advancedInput" style="display: none; height: 80px; font-family: monospace; resize: vertical;" placeholder="dst:10.0.0.* AND (src:192.168.0.1 OR src:192.168.0.2) NOT act:accept"></textarea>
+            </div>
+            
+            <div class="input-group small">
+                <label>Data Início</label><input type="date" id="fromDate">
+            </div>
+            <div class="input-group small">
+                <label>Hora</label><input type="text" id="fromTime" placeholder="00:00:00" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
+            </div>
+            <div class="input-group small">
+                <label>Data Fim</label><input type="date" id="toDate">
+            </div>
+            <div class="input-group small">
+                <label>Hora</label><input type="text" id="toTime" placeholder="23:59:59" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}">
+            </div>
+            <div class="input-group">
+                <button onclick="executeSearch()">Pesquisar Logs</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-wrapper">
+        <div class="status-bar">
+            <span id="statusMessage">Aguardando pesquisa...</span>
+            <div>
+                <span class="loader" id="loader">Recebendo fluxo NDJSON... </span>
+                <span id="costDisplay" class="cost-badge" style="display:none;">Custo S3: $0.00</span>
+            </div>
+        </div>
+
+        <div id="tabsContainer" class="tabs"></div>
+        <div id="tabContentsContainer"></div>
+    </div>
+
+    <script>
+        let expanded = false;
+        let isAdvancedMode = false;
+        let activeDeviceTab = null;
+        let blocksInView = {}; // NOVO: Rastreia os blocos visíveis por device
+
+        function toggleAdvancedMode() {
+            isAdvancedMode = !isAdvancedMode;
+            document.getElementById('termInput').style.display = isAdvancedMode ? 'none' : 'block';
+            document.getElementById('advancedInput').style.display = isAdvancedMode ? 'block' : 'none';
+            document.getElementById('toggleModeBtn').innerText = isAdvancedMode ? '[ Alternar para Modo Simplificado ]' : '[ Alternar para Modo Avançado ]';
+        }
+
+        function toggleCheckboxes() {
+            const cb = document.getElementById("checkboxes");
+            cb.style.display = expanded ? "none" : "block";
+            expanded = !expanded;
+        }
+
+        document.addEventListener('click', e => {
+            if (!document.querySelector('.multiselect').contains(e.target) && expanded) toggleCheckboxes();
+        });
+
+        function toggleAllDevices(source) {
+            document.querySelectorAll('.dev-cb').forEach(cb => cb.checked = source.checked);
+            updateMultiSelectText();
+        }
+
+        function updateMultiSelectText() {
+            const cbs = document.querySelectorAll('.dev-cb');
+            const count = Array.from(cbs).filter(cb => cb.checked).length;
+            document.getElementById('all_dev').checked = (count === cbs.length);
+            document.getElementById('multiSelectText').innerText = count === 0 ? "Nenhum selecionado" : (count === cbs.length ? "Todos selecionados" : `${count} Selecionados`);
+        }
+
+        window.onload = () => {
+            updateMultiSelectText();
+            const now = new Date();
+            document.getElementById('toDate').value = now.toISOString().split('T')[0];
+            document.getElementById('fromTime').value = "00:00:00";
+            document.getElementById('toTime').value = now.toTimeString().split(' ')[0];
+            now.setDate(now.getDate() - 1);
+            document.getElementById('fromDate').value = now.toISOString().split('T')[0];
+        };
+
+        function parseQueryInput(rawText) {
+            const obj = {};
+            if (!rawText || rawText.trim() === "") return obj;
+            if (rawText.includes('=')) {
+                rawText.split(',').forEach(p => {
+                    const parts = p.split('=');
+                    if (parts.length === 2) obj[parts[0].trim()] = parts[1].trim();
+                });
+            } else {
+                obj["all"] = rawText.trim();
+            }
+            return obj;
+        }
+
+        // Sistema de Abas
+        function switchTab(deviceName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`btn-tab-${deviceName}`).classList.add('active');
+            document.getElementById(`content-tab-${deviceName}`).classList.add('active');
+            activeDeviceTab = deviceName;
+        }
+
+        function getOrCreateTab(deviceName) {
+            let tabBtn = document.getElementById(`btn-tab-${deviceName}`);
+            if (!tabBtn) {
+                tabBtn = document.createElement('button');
+                tabBtn.className = 'tab-btn';
+                tabBtn.id = `btn-tab-${deviceName}`;
+                tabBtn.innerText = deviceName;
+                tabBtn.onclick = () => switchTab(deviceName);
+                document.getElementById('tabsContainer').appendChild(tabBtn);
+
+                const tabContent = document.createElement('div');
+                tabContent.className = 'tab-content';
+                tabContent.id = `content-tab-${deviceName}`;
+                
+                const headerHtml = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin:0; color:#cbd5e1;">Resultados: ${deviceName}</h3>
+                        <button class="btn-small" style="background-color: #3b82f6;" onclick="downloadAllBlocks('${deviceName}')">
+                            ⬇️ Baixar Todos os Blocos Listados Deste Device
+                        </button>
+                    </div>
+                    <div id="blocks-container-${deviceName}"></div>
+                `;
+                tabContent.innerHTML = headerHtml;
+                document.getElementById('tabContentsContainer').appendChild(tabContent);
+
+                if (!activeDeviceTab) switchTab(deviceName);
+            }
+            return document.getElementById(`blocks-container-${deviceName}`);
+        }
+
+        function getOrCreateBlockTree(container, deviceName, blockName) {
+            let detailsEl = document.getElementById(`block-${blockName}`);
+            if (!detailsEl) {
+                detailsEl = document.createElement('details');
+                detailsEl.id = `block-${blockName}`;
+                
+                const summaryHtml = `
+                    <summary>
+                        <div class="block-title">
+                            <span>📦 ${blockName}</span>
+                            <span class="event-count-badge" id="count-${blockName}">0 eventos</span>
+                        </div>
+                        <button class="btn-small" onclick="downloadBlock(event, '${deviceName}', '${blockName}')">⬇️ Decifrar e Exportar Bloco</button>
+                    </summary>
+                    <ul class="event-list" id="list-${blockName}"></ul>
+                `;
+                detailsEl.innerHTML = summaryHtml;
+                container.appendChild(detailsEl);
+            }
+            return {
+                list: document.getElementById(`list-${blockName}`),
+                countBadge: document.getElementById(`count-${blockName}`)
+            };
+        }
+
+        async function downloadBlock(event, device, block) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ Extraindo...";
+            btn.style.backgroundColor = "#fbbf24";
+
+            try {
+                const res = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device, blockName: block })
+                });
+                const json = await res.json();
+                
+                if (json.status === 'success') {
+                    btn.innerText = "✅ Exportado";
+                    btn.style.backgroundColor = "#10b981";
+                    alert(json.message);
+                } else {
+                    btn.innerText = "❌ Erro";
+                    btn.style.backgroundColor = "#ef4444";
+                    alert(json.message);
+                }
+            } catch (err) {
+                btn.innerText = "❌ Erro de Rede";
+                btn.style.backgroundColor = "#ef4444";
+            }
+        }
+
+        // ATUALIZAÇÃO: Exportação Seletiva baseada no que está na tela
+        async function downloadAllBlocks(deviceName) {
+            const list = blocksInView[deviceName] || [];
+            
+            if (list.length === 0) {
+                alert("Nenhum bloco disponível para este filtro.");
+                return;
+            }
+
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.innerText = `📦 Exportação Seletiva: Processando ${list.length} blocos identificados na query...`;
+            
+            try {
+                const res = await fetch('/api/export/selected', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device: deviceName,
+                        blockNames: list
+                    })
+                });
+                const json = await res.json();
+                
+                if (json.status === 'success') {
+                    statusEl.innerText = `✅ Concluído: ${json.message}`;
+                    alert(json.message);
+                } else {
+                    statusEl.innerText = `❌ Falha na exportação: ${json.message}`;
+                    alert("Erro: " + json.message);
+                }
+            } catch (err) {
+                statusEl.innerText = "❌ Erro de conexão com a API de Exportação.";
+            }
+        }
+
+        async function executeSearch() {
+            const selectedDevices = Array.from(document.querySelectorAll('.dev-cb:checked')).map(cb => cb.value);
+            if (selectedDevices.length === 0) { alert("Selecione pelo menos um Device."); return; }
+
+            const payload = {
+                devices: selectedDevices,
+                fields: {},
+                rawLuceneQuery: null,
+                fromIsoDate: `${document.getElementById('fromDate').value}T${document.getElementById('fromTime').value || "00:00:00"}`,
+                toIsoDate: `${document.getElementById('toDate').value}T${document.getElementById('toTime').value || "23:59:59"}`
+            };
+
+            if (isAdvancedMode) {
+                payload.rawLuceneQuery = document.getElementById('advancedInput').value.trim().replace(/=/g, ':');
+            } else {
+                payload.fields = parseQueryInput(document.getElementById('termInput').value);
+            }
+
+            document.getElementById('loader').style.display = 'inline';
+            document.getElementById('costDisplay').style.display = 'none';
+            document.getElementById('statusMessage').innerText = 'Iniciando streaming distribuído...';
+            
+            // Reseta a UI e o Rastreador de Blocos Visíveis
+            document.getElementById('tabsContainer').innerHTML = '';
+            document.getElementById('tabContentsContainer').innerHTML = '';
+            activeDeviceTab = null;
+            blocksInView = {}; 
+            let totalEventsRcv = 0;
+            const termsToHighlight = isAdvancedMode ? [] : Object.values(payload.fields);
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); 
+
+                    for (let line of lines) {
+                        if (line.trim() === "") continue;
+                        const msg = JSON.parse(line);
+
+                        if (msg.type === "chunk") {
+                            // RASTREIO DE CONTEXTO: Anota o bloco retornado para exportação seletiva
+                            if (!blocksInView[msg.device]) blocksInView[msg.device] = [];
+                            if (!blocksInView[msg.device].includes(msg.block)) {
+                                blocksInView[msg.device].push(msg.block);
+                            }
+
+                            totalEventsRcv += msg.data.length;
+                            document.getElementById('statusMessage').innerText = `Streaming... Renderizados ${totalEventsRcv} eventos na árvore...`;
+                            
+                            const tabContainer = getOrCreateTab(msg.device);
+                            const tree = getOrCreateBlockTree(tabContainer, msg.device, msg.block);
+                            
+                            let currentCount = parseInt(tree.countBadge.innerText);
+                            tree.countBadge.innerText = `${currentCount + msg.data.length} eventos`;
+
+                            let htmlChunk = '';
+                            msg.data.forEach(row => {
+                                let safeRow = escapeHtml(row);
+                                if (termsToHighlight.length > 0) {
+                                    termsToHighlight.forEach(term => {
+                                        if(term.trim() !== "") {
+                                            const regex = new RegExp(`(${escapeHtml(term)})`, 'gi');
+                                            safeRow = safeRow.replace(regex, '<mark>$1</mark>');
+                                        }
+                                    });
+                                }
+                                htmlChunk += `<li>${safeRow}</li>`;
+                            });
+                            tree.list.insertAdjacentHTML('beforeend', htmlChunk);
+                        } 
+                        else if (msg.type === "summary") {
+                            document.getElementById('loader').style.display = 'none';
+                            document.getElementById('statusMessage').innerText = `Concluído. Processados ${msg.eventsFound} eventos (Total no índice: ${msg.totalRealHits})`;
+                            
+                            const s3Bytes = msg.s3BytesDownloaded || 0;
+                            const costBadge = document.getElementById('costDisplay');
+                            costBadge.style.display = 'inline';
+                            if (s3Bytes === 0) {
+                                costBadge.innerText = "☁️ Custo S3: Zero";
+                                costBadge.style.color = "#34d399";
+                            } else {
+                                costBadge.innerText = `☁️ Custo S3: ~$${((s3Bytes / (1024 ** 3)) * 0.09).toFixed(6)}`;
+                                costBadge.style.color = "#fbbf24";
+                            }
+                        }
+                        else if (msg.type === "error") {
+                            document.getElementById('loader').style.display = 'none';
+                            document.getElementById('statusMessage').innerText = `Erro: ${msg.message}`;
+                        }
+                    }
+                }
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('statusMessage').innerText = `Erro de rede/streaming: ${error.message}`;
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return "";
+            return unsafe.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

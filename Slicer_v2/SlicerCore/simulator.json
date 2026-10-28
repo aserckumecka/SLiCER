@@ -1,0 +1,15 @@
+{
+  "targetHost": "127.0.0.1",
+  "targetTcpPort": 8888,
+  "saveToDisk": true,
+  "diskOutputPath": "storage/mock_data",
+  "devices": [
+    { "name": "webserver.php", "eps": 719, "format": "JSON" },
+    { "name": "sgbd.postgresql", "eps": 749, "format": "CEF" },
+    { "name": "sgbd.mysql", "eps": 856, "format": "JSON" },
+    { "name": "proxy.squid", "eps": 756, "format": "CEF" },
+    { "name": "ids.snort", "eps": 669, "format": "CEF" },
+    { "name": "firewall.sonicwall", "eps": 755, "format": "CEF" },
+    { "name": "firewall.ciscoasa", "eps": 833, "format": "CEF" }
+  ]
+}
