@@ -23,7 +23,7 @@ slicer:
 
   # --- CONFIGURAÇÕES DA NUVEM DIRETA ---
   aws:
-    bucketName: "bucket-slicer"
+    bucketName: "your-slicer-bucket"
   block:
     maxSizeMb: 5
     maxIntervalMinutes: 10
