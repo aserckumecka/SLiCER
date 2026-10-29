@@ -2,7 +2,6 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-    <title>SLiCER - Safe Long-term Cloud Event Archival</title>
 </head>
 <body lang="en-US" link="#000080" vlink="#800000" dir="ltr">
 <h1 class="western">🗡️ SLiCER (Safe Long-term Cloud Event Archival)</h1>
