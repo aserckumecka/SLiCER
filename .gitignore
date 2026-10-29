@@ -1,0 +1,34 @@
+# Segredos e Variáveis de Ambiente
+.env
+*.env
+*.pem
+*.key
+
+# Dados de Execução do SLiCER (Cache, Blocos, Ledgers, Charon, Mock)
+**/storage/
+**/tmp/
+**/ledgers/
+**/exports/
+*.slc
+*.tar.xz
+*.enc
+*.bf
+chain_state.txt
+write.lock
+
+# Pastas de Compilação Java (Maven / Eclipse / NetBeans)
+**/target/
+**/bin/
+**/build/
+*.class
+
+# Dependências Node.js
+**/node_modules/
+
+# Arquivos privados de IDE e Sistema Operacional
+.directory
+**/.directory
+**/.settings/
+**/.classpath
+**/.project
+**/nbproject/private/
